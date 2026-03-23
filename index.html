@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Piano Alimentare — Giacomo</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F9FAFB;color:#111827;padding:16px;max-width:900px;margin:0 auto}
+  h1{font-size:20px;font-weight:600;margin-bottom:2px}
+  .sub{font-size:13px;color:#6B7280;margin-bottom:20px}
+  /* calendario */
+  .cal-wrap{overflow-x:auto;margin-bottom:28px}
+  .cal{display:grid;grid-template-columns:78px repeat(7,1fr);gap:3px;min-width:520px}
+  .cal-head{text-align:center;padding:4px 2px}
+  .cal-head .dname{font-size:12px;font-weight:600;color:#374151}
+  .cal-head .dkcal{font-size:11px;color:#9CA3AF;margin-top:1px}
+  .cal-lbl{font-size:12px;font-weight:500;color:#6B7280;display:flex;align-items:center;gap:4px;padding:3px 0}
+  .cal-cell{min-height:50px;border-radius:6px;padding:4px 5px;border:1px solid #E5E7EB;background:#F3F4F6;cursor:default;transition:border .1s}
+  .cal-cell.target{border:2px dashed #F59E0B;background:#FFFBEB;cursor:pointer}
+  .cal-cell.target:hover{background:#FEF3C7}
+  .cal-entry{font-size:10px;line-height:1.4;cursor:pointer;color:#374151;margin-bottom:1px}
+  .cal-entry:hover{text-decoration:line-through;color:#EF4444}
+  .cal-plus{font-size:18px;color:#F59E0B;text-align:center;line-height:46px;opacity:.6}
+  /* banner */
+  .banner{background:#FFFBEB;border:1px solid #FCD34D;border-radius:8px;padding:9px 14px;margin-bottom:16px;font-size:13px;color:#92400E;display:flex;justify-content:space-between;align-items:center;display:none}
+  .banner.show{display:flex}
+  .banner button{font-size:12px;padding:3px 10px;border-radius:6px;border:1px solid #FCD34D;background:transparent;color:#92400E;cursor:pointer}
+  /* sezioni */
+  .section-title{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .section-title h2{font-size:15px;font-weight:600}
+  .section-title .count{font-size:12px;color:#9CA3AF}
+  .empty-msg{font-size:13px;color:#9CA3AF;padding:4px}
+  /* card pasto */
+  .meal-card{background:#fff;border:1px solid #E5E7EB;border-radius:10px;overflow:hidden;margin-bottom:6px}
+  .meal-card.assigning{border:2px solid #F59E0B}
+  .meal-body{display:flex;align-items:flex-start;gap:10px;padding:10px 14px}
+  .meal-info{flex:1;min-width:0}
+  .meal-label{font-size:13px;font-weight:600;color:#111827}
+  .meal-items{font-size:11px;color:#9CA3AF;margin-top:2px;line-height:1.5}
+  .meal-note{font-size:11px;color:#6B7280;font-style:italic;margin-top:2px}
+  .meal-actions{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+  .kcal-badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px}
+  .btns{display:flex;gap:5px}
+  .btn-alt{font-size:12px;padding:5px 12px;border-radius:8px;cursor:pointer;font-weight:500;background:#F3F4F6;color:#6B7280;border:none;box-shadow:0 1px 3px rgba(0,0,0,.1);transition:all .15s}
+  .btn-alt:hover{background:#E5E7EB}
+  .btn-alt.active{background:#D1D5DB;color:#374151;box-shadow:0 2px 6px rgba(0,0,0,.13)}
+  .btn-assign{font-size:12px;padding:5px 14px;border-radius:8px;cursor:pointer;font-weight:600;background:#FEF3C7;color:#92400E;border:none;box-shadow:0 1px 3px rgba(0,0,0,.1);transition:all .15s}
+  .btn-assign:hover{background:#FDE68A}
+  .btn-assign.active{background:#D97706;color:#fff;box-shadow:0 2px 8px rgba(245,158,11,.4)}
+  .alt-panel{border-top:1px solid #F3F4F6;background:#F9FAFB;padding:8px 14px;font-size:12px;color:#6B7280;line-height:1.6}
+  /* colori kcal per tipo */
+  .kcal-col{background:#FEF3C7;color:#92400E}
+  .kcal-spu{background:#D1FAE5;color:#065F46}
+  .kcal-pra{background:#DBEAFE;color:#1E40AF}
+  .kcal-mer{background:#FEE2E2;color:#991B1B}
+  .kcal-cen{background:#EDE9FE;color:#5B21B6}
+  /* celle calendario per tipo */
+  .cell-col{background:#FFFBEB;border-color:#FDE68A} .cell-col .cal-entry{color:#92400E}
+  .cell-spu{background:#ECFDF5;border-color:#6EE7B7} .cell-spu .cal-entry{color:#065F46}
+  .cell-pra{background:#EFF6FF;border-color:#93C5FD} .cell-pra .cal-entry{color:#1E40AF}
+  .cell-mer{background:#FEF2F2;border-color:#FCA5A5} .cell-mer .cal-entry{color:#991B1B}
+  .cell-cen{background:#F5F3FF;border-color:#C4B5FD} .cell-cen .cal-entry{color:#5B21B6}
+  /* reset */
+  .reset-btn{font-size:12px;padding:4px 12px;border-radius:8px;cursor:pointer;background:#FEE2E2;color:#991B1B;border:none;font-weight:500;margin-left:auto;display:block;margin-bottom:12px}
+  .reset-btn:hover{background:#FECACA}
+  section{margin-bottom:28px}
+</style>
+</head>
+<body>
+
+<h1>🥗 Piano alimentare settimanale</h1>
+<p class="sub">Giacomo · valido fino al 5 maggio 2026 · Sincronizzato con Google Sheets</p>
+<div id="syncbar" style="display:none;font-size:12px;padding:6px 12px;border-radius:8px;margin-bottom:12px;background:#ECFDF5;color:#065F46"></div>
+
+<div class="banner" id="banner">
+  <span>Clicca sul giorno nel calendario per assegnare il pasto selezionato</span>
+  <button onclick="cancelAssign()">Annulla</button>
+</div>
+
+<div class="cal-wrap">
+  <div class="cal" id="cal"></div>
+</div>
+
+<button class="reset-btn" onclick="resetAll()">↺ Reset settimana</button>
+
+<div id="lists"></div>
+
+<script>
+const DAYS = ["Lun","Mar","Mer","Gio","Ven","Sab","Dom"];
+const TYPES = ["Colazione","Spuntino","Pranzo","Merenda","Cena"];
+const ICONS = {Colazione:"☀️",Spuntino:"🍎",Pranzo:"🍝",Merenda:"🧀",Cena:"🌙"};
+const TCLS  = {Colazione:"col",Spuntino:"spu",Pranzo:"pra",Merenda:"mer",Cena:"cen"};
+
+const KCAL = {
+  "Yogurt Greco Magro 150g":88,"Muesli 40g":148,"Mirtilli 100g":57,"Frutta secca 20g":124,
+  "Cioccolato fondente 80%+ 20g":114,"Pane tostato 50g":160,"Fette biscottate integrali 40g":152,
+  "Burro di arachidi 20g":118,"Marmellata senza zuccheri 30g":42,"Albume 150g":78,
+  "Farina di avena 40g":152,"Farina di riso 40g":146,"Frutta fresca 150g":75,
+  "Barretta di cereali 30g":114,"Biscotti integrali 30g":120,"Pasta di semola 120g":432,
+  "Pasta integrale 120g":408,"Riso Parboiled 120g":420,"Riso basmati 120g":426,
+  "Riso integrale 120g":414,"Farro 100g":340,"Orzo perlato 100g":352,"Cous Cous 100g":358,
+  "Tonno al naturale 70g":73,"Salmone affumicato 70g":130,"Gamberetti 150g":120,
+  "Passata di pomodoro 100g":24,"Parmigiano grattugiato 10g":39,"Parmigiano 20g":78,
+  "Grana 20g":76,"Vitello magro 100g":105,"Pollo petto 100g":106,"Tacchino petto 100g":99,
+  "Legumi in scatola 150g":135,"Crackers integrali 30g":118,"Tacchino fesa 100g":99,
+  "Bresaola 80g":83,"Prosciutto crudo magro 80g":134,"Prosciutto cotto magro 100g":136,
+  "Ricotta di vacca 50g":71,"Uova intere 120g":172,"Albume 100g":52,"Merluzzo 250g":208,
+  "Nasello 300g":228,"Persico 250g":215,"Platessa 250g":195,"Seppia 300g":216,
+  "Spigola 250g":225,"Orata 200g":188,"Sogliola 250g":200,"Salmone 150g":280,
+  "Pollo petto 200g":212,"Tacchino petto 200g":198,"Verdure 200g":50,"Olio EVO 10g":88,
+  "Pesto alla Genovese 20g":134,"Patate 150g":116,"Vitello magro 200g":210,
+  "Manzo magro 200g":220,"Hamburger 200g":300,
+};
+
+const MEALS = [
+  {id:"col_lun",type:"Colazione",day:0,label:"Lun — Yogurt greco + Muesli + Mirtilli",items:["Yogurt Greco Magro 150g","Muesli 40g","Mirtilli 100g","Frutta secca 20g"],alt:"Frutta secca → Cioccolato fondente 80%+ 20g",note:"Puoi aggiungere il caffè."},
+  {id:"col_mar",type:"Colazione",day:1,label:"Mar — Yogurt greco + Pane + Burro arachidi",items:["Yogurt Greco Magro 150g","Pane tostato 50g","Burro di arachidi 20g","Marmellata senza zuccheri 30g"],alt:"Pane tostato → Fette biscottate integrali 40g",note:""},
+  {id:"col_mer",type:"Colazione",day:2,label:"Mer — Yogurt greco + Pane + Marmellata",items:["Yogurt Greco Magro 150g","Pane tostato 50g","Marmellata senza zuccheri 30g","Frutta secca 20g"],alt:"Pane → Fette biscottate. Frutta secca → Cioccolato fondente.",note:""},
+  {id:"col_gio",type:"Colazione",day:3,label:"Gio — Pancake proteici + Burro arachidi",items:["Albume 150g","Farina di avena 40g","Burro di arachidi 20g","Marmellata senza zuccheri 30g"],alt:"Farina di avena → Farina di riso 40g",note:"PANCAKE: mescola albume + farina + marmellata e cuoci in padella."},
+  {id:"col_ven",type:"Colazione",day:4,label:"Ven — Pancake proteici + Frutta secca",items:["Albume 150g","Farina di avena 40g","Marmellata senza zuccheri 30g","Frutta secca 20g"],alt:"Farina di avena → Farina di riso. Frutta secca → Cioccolato fondente.",note:"PANCAKE."},
+  {id:"spu_lun",type:"Spuntino",day:0,label:"Lun — Frutta fresca",items:["Frutta fresca 150g"],alt:"",note:""},
+  {id:"spu_mar",type:"Spuntino",day:1,label:"Mar — Barretta di cereali",items:["Barretta di cereali 30g"],alt:"Barretta → Biscotti integrali 30g",note:""},
+  {id:"spu_mer",type:"Spuntino",day:2,label:"Mer — Frutta fresca",items:["Frutta fresca 150g"],alt:"",note:""},
+  {id:"spu_gio",type:"Spuntino",day:3,label:"Gio — Barretta di cereali",items:["Barretta di cereali 30g"],alt:"Barretta → Biscotti integrali 30g",note:""},
+  {id:"spu_ven",type:"Spuntino",day:4,label:"Ven — Frutta fresca",items:["Frutta fresca 150g"],alt:"",note:""},
+  {id:"spu_sab",type:"Spuntino",day:5,label:"Sab — Frutta fresca",items:["Frutta fresca 150g"],alt:"",note:""},
+  {id:"spu_dom",type:"Spuntino",day:6,label:"Dom — Frutta fresca",items:["Frutta fresca 150g"],alt:"",note:""},
+  {id:"pra_lun",type:"Pranzo",day:0,label:"Lun — Pasta + Tonno + Verdure",items:["Pasta di semola 120g","Tonno al naturale 70g","Verdure 200g","Olio EVO 10g"],alt:"Pasta → Riso/Pasta integrale. Tonno → Salmone affumicato 70g o Gamberetti 150g.",note:"1 cucchiaio EVO."},
+  {id:"pra_mar",type:"Pranzo",day:1,label:"Mar — Pasta al pomodoro + Parmigiano",items:["Pasta di semola 120g","Passata di pomodoro 100g","Olio EVO 10g","Parmigiano grattugiato 10g"],alt:"Pasta → Pasta integrale 120g",note:""},
+  {id:"pra_mer",type:"Pranzo",day:2,label:"Mer — Pasta + Vitello + Verdure",items:["Pasta di semola 120g","Vitello magro 100g","Verdure 200g","Olio EVO 10g"],alt:"Pasta → Riso/Pasta integrale. Vitello → Pollo/Tacchino petto 100g.",note:"Vitello = macinato magro."},
+  {id:"pra_gio",type:"Pranzo",day:3,label:"Gio — Pasta + Legumi + Verdure",items:["Pasta di semola 120g","Legumi in scatola 150g","Verdure 200g","Olio EVO 10g"],alt:"Pasta → Riso / Farro / Orzo / Cous Cous 100g.",note:"150g legumi scatola ≈ 50g secchi cotti."},
+  {id:"pra_ven",type:"Pranzo",day:4,label:"Ven — Pasta + Verdure + Parmigiano",items:["Pasta di semola 120g","Verdure 200g","Olio EVO 10g","Parmigiano grattugiato 10g"],alt:"Pasta → Riso/Pasta integrale. Olio → Pesto alla Genovese 20g.",note:""},
+  {id:"pra_sab",type:"Pranzo",day:5,label:"Sab — Pollo + Verdure + Pane",items:["Pollo petto 200g","Verdure 200g","Pane tostato 50g","Olio EVO 10g"],alt:"Pollo → Tacchino petto 200g. Pane → Integrale.",note:""},
+  {id:"pra_dom",type:"Pranzo",day:6,label:"Dom — 🎉 Pranzo libero",items:[],alt:"",note:"Un primo o un secondo. Evita il dolce a fine pasto."},
+  {id:"mer_lun",type:"Merenda",day:0,label:"Lun — Crackers + Parmigiano",items:["Crackers integrali 30g","Parmigiano 20g"],alt:"Parmigiano → Grana 20g",note:"1 pacchetto crackers."},
+  {id:"mer_mar",type:"Merenda",day:1,label:"Mar — Frutta secca",items:["Frutta secca 20g"],alt:"",note:""},
+  {id:"mer_mer",type:"Merenda",day:2,label:"Mer — Crackers + Parmigiano",items:["Crackers integrali 30g","Parmigiano 20g"],alt:"Parmigiano → Grana 20g",note:""},
+  {id:"mer_gio",type:"Merenda",day:3,label:"Gio — Frutta secca",items:["Frutta secca 20g"],alt:"",note:""},
+  {id:"mer_ven",type:"Merenda",day:4,label:"Ven — Crackers + Parmigiano",items:["Crackers integrali 30g","Parmigiano 20g"],alt:"Parmigiano → Grana 20g",note:""},
+  {id:"mer_sab",type:"Merenda",day:5,label:"Sab — Frutta secca",items:["Frutta secca 20g"],alt:"",note:""},
+  {id:"mer_dom",type:"Merenda",day:6,label:"Dom — Frutta secca",items:["Frutta secca 20g"],alt:"",note:""},
+  {id:"cen_lun",type:"Cena",day:0,label:"Lun — Tacchino + Ricotta + Verdure",items:["Tacchino fesa 100g","Ricotta di vacca 50g","Verdure 200g","Pane tostato 50g","Olio EVO 10g"],alt:"Tacchino → Bresaola/Prosciutto. Ricotta → Parmigiano 20g.",note:""},
+  {id:"cen_mar",type:"Cena",day:1,label:"Mar — Merluzzo + Verdure",items:["Merluzzo 250g","Verdure 200g","Pane tostato 50g","Olio EVO 10g"],alt:"Merluzzo → Nasello/Persico/Platessa/Spigola/Orata/Sogliola/Salmone. Pane → Patate 150g.",note:""},
+  {id:"cen_mer",type:"Cena",day:2,label:"Mer — Uova + Albume + Verdure",items:["Uova intere 120g","Albume 100g","Verdure 200g","Pane tostato 50g","Olio EVO 10g"],alt:"",note:"2 uova medie: strapazzate, frittata o all'occhio di bue."},
+  {id:"cen_gio",type:"Cena",day:3,label:"Gio — Pollo + Verdure",items:["Pollo petto 200g","Verdure 200g","Pane tostato 50g","Olio EVO 10g"],alt:"Pollo → Tacchino petto 200g.",note:""},
+  {id:"cen_ven",type:"Cena",day:4,label:"Ven — Merluzzo + Verdure",items:["Merluzzo 250g","Verdure 200g","Pane tostato 50g","Olio EVO 10g"],alt:"Merluzzo → Nasello/Persico/Platessa/Seppia/Spigola/Orata/Sogliola/Salmone. Pane → Patate 150g.",note:""},
+  {id:"cen_sab",type:"Cena",day:5,label:"Sab — 🎉 Cena libera",items:[],alt:"",note:""},
+  {id:"cen_dom",type:"Cena",day:6,label:"Dom — Vitello + Verdure",items:["Vitello magro 200g","Verdure 200g","Pane tostato 50g","Olio EVO 10g"],alt:"Vitello → Manzo magro 200g · Hamburger 200g.",note:""},
+];
+
+const API = "https://script.google.com/macros/s/AKfycbxgY1FztZFAJl_YfH4thaKa5LYXFx8hc00gUTjq1RP8uGyIH4XDW60lKhk-VZvHlOvC/exec";
+
+// State
+let logged = {};
+let assigning = null;
+let expanded = {};
+let syncing = false;
+
+function showSync(msg, color){
+  let el = document.getElementById("syncbar");
+  el.textContent = msg;
+  el.style.background = color||"#ECFDF5";
+  el.style.color = color=="#FEE2E2"?"#991B1B":"#065F46";
+  el.style.display="block";
+  if(!msg) el.style.display="none";
+}
+
+async function save(){
+  syncing = true;
+  showSync("💾 Salvataggio in corso...");
+  try{
+    await fetch(API, {method:"POST", body:JSON.stringify(logged)});
+    showSync("✓ Salvato e sincronizzato");
+    setTimeout(()=>showSync(""),2500);
+  } catch(e){
+    showSync("⚠️ Errore di salvataggio — riprova","#FEE2E2");
+  }
+  syncing = false;
+}
+
+async function load(){
+  showSync("⏳ Caricamento dati...");
+  try{
+    const r = await fetch(API);
+    const data = await r.json();
+    // converti dayIndex da stringa a numero
+    Object.keys(data).forEach(k=>{ data[k]=parseInt(data[k]); });
+    logged = data;
+    showSync("✓ Dati caricati","#ECFDF5");
+    setTimeout(()=>showSync(""),2000);
+  } catch(e){
+    showSync("⚠️ Impossibile caricare i dati — modalità offline","#FEE2E2");
+  }
+}
+
+function calcKcalItems(items){ return items.reduce((s,i)=>s+(KCAL[i]||0),0); }
+function dayKcal(di){ return MEALS.filter(m=>logged[m.id]===di).reduce((s,m)=>s+calcKcalItems(m.items),0); }
+function loggedForDayType(di,type){ return MEALS.filter(m=>logged[m.id]===di&&m.type===type); }
+function available(type){ return MEALS.filter(m=>m.type===type&&logged[m.id]===undefined); }
+function shortLabel(lbl){ return lbl.replace(/^(Lun|Mar|Mer|Gio|Ven|Sab|Dom) — /,""); }
+
+function assignTo(di){
+  if(!assigning) return;
+  logged[assigning] = di;
+  assigning = null;
+  save(); render();
+}
+function unlog(id){ delete logged[id]; save(); render(); }
+function cancelAssign(){ assigning=null; render(); }
+function resetAll(){ if(confirm("Resettare tutta la settimana?")){ logged={}; save(); render(); } }
+function toggleExpand(id){ expanded[id]=!expanded[id]; render(); }
+function startAssign(id){ assigning=(assigning===id)?null:id; render(); }
+
+function renderCal(){
+  const cal = document.getElementById("cal");
+  let html = '<div></div>';
+  DAYS.forEach((d,i)=>{
+    const kc = dayKcal(i);
+    html+=`<div class="cal-head"><div class="dname">${d}</div><div class="dkcal">${kc>0?kc+' kcal':'—'}</div></div>`;
+  });
+  TYPES.forEach(type=>{
+    const cls = TCLS[type];
+    const isTarget = assigning && MEALS.find(m=>m.id===assigning)?.type===type;
+    html+=`<div class="cal-lbl">${ICONS[type]} ${type}</div>`;
+    DAYS.forEach((_,i)=>{
+      const entries = loggedForDayType(i,type);
+      const cellCls = entries.length ? `cell-${cls}` : '';
+      const targetCls = isTarget ? 'target' : '';
+      const onclick = isTarget ? `onclick="assignTo(${i})"` : '';
+      html+=`<div class="cal-cell ${cellCls} ${targetCls}" ${onclick}>`;
+      entries.forEach(m=>{
+        html+=`<div class="cal-entry" onclick="unlog('${m.id}')" title="Clicca per rimuovere">${shortLabel(m.label)}</div>`;
+      });
+      if(isTarget && entries.length===0) html+=`<div class="cal-plus">+</div>`;
+      html+='</div>';
+    });
+  });
+  cal.innerHTML = html;
+}
+
+function renderLists(){
+  const el = document.getElementById("lists");
+  let html='';
+  TYPES.forEach(type=>{
+    const cls = TCLS[type];
+    const avail = available(type);
+    html+=`<section>
+      <div class="section-title">
+        <span style="font-size:16px">${ICONS[type]}</span>
+        <h2>${type}</h2>
+        <span class="count">${avail.length} disponibili</span>
+      </div>`;
+    if(!avail.length){
+      html+=`<p class="empty-msg">Tutti i pasti sono stati assegnati ✓</p>`;
+    } else {
+      avail.forEach(m=>{
+        const kc = calcKcalItems(m.items);
+        const isA = assigning===m.id;
+        const isE = expanded[m.id];
+        html+=`<div class="meal-card${isA?' assigning':''}">
+          <div class="meal-body">
+            <div class="meal-info">
+              <div class="meal-label">${m.label}</div>
+              ${m.items.length?`<div class="meal-items">${m.items.join(' · ')}</div>`:''}
+              ${m.note?`<div class="meal-note">📌 ${m.note}</div>`:''}
+            </div>
+            <div class="meal-actions">
+              ${kc>0?`<span class="kcal-badge kcal-${cls}">${kc} kcal</span>`:''}
+              <div class="btns">
+                ${m.alt?`<button class="btn-alt${isE?' active':''}" onclick="toggleExpand('${m.id}')">Alt.</button>`:''}
+                <button class="btn-assign${isA?' active':''}" onclick="startAssign('${m.id}')">${isA?'✓ Scegli giorno':'Assegna'}</button>
+              </div>
+            </div>
+          </div>
+          ${isE&&m.alt?`<div class="alt-panel">${m.alt}</div>`:''}
+        </div>`;
+      });
+    }
+    html+='</section>';
+  });
+  el.innerHTML = html;
+}
+
+function renderBanner(){
+  const b = document.getElementById("banner");
+  b.className = assigning ? "banner show" : "banner";
+}
+
+function render(){ renderBanner(); renderCal(); renderLists(); }
+
+load().then(render);
+</script>
+</body>
+</html>
