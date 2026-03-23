@@ -149,7 +149,7 @@ const MEALS = [
   {id:"cen_dom",type:"Cena",day:6,label:"Dom — Vitello + Verdure",items:["Vitello magro 200g","Verdure 200g","Pane tostato 50g","Olio EVO 10g"],alt:"Vitello → Manzo magro 200g · Hamburger 200g.",note:""},
 ];
 
-const API = "https://script.google.com/macros/s/AKfycbyBwcaBAcM9pQmwcwmVc38nCqsYuexXYPiOkATbROqELNoxT6kdvGRBDTwhCX5oFtTd/exec";
+const API = "https://script.google.com/macros/s/AKfycbwOvIr9dUSvEM0zt_YAnjbAGkWY-wUZ6VtbJ2W58_eNHQdoMzuZa9KSFV1XKNQgBH5F/exec";
 
 // State
 let logged = {};
@@ -170,7 +170,8 @@ async function save(){
   syncing = true;
   showSync("💾 Salvataggio in corso...");
   try{
-    await fetch(API, {method:"POST", body:JSON.stringify(logged)});
+    const encoded = encodeURIComponent(JSON.stringify(logged));
+    await fetch(`${API}?action=save&data=${encoded}`);
     showSync("✓ Salvato e sincronizzato");
     setTimeout(()=>showSync(""),2500);
   } catch(e){
@@ -182,9 +183,8 @@ async function save(){
 async function load(){
   showSync("⏳ Caricamento dati...");
   try{
-    const r = await fetch(API);
+    const r = await fetch(`${API}?action=load`);
     const data = await r.json();
-    // converti dayIndex da stringa a numero
     Object.keys(data).forEach(k=>{ data[k]=parseInt(data[k]); });
     logged = data;
     showSync("✓ Dati caricati","#ECFDF5");
